@@ -14,8 +14,8 @@
     <title>어스토니시아 스토리</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" type="text/css" href="theme/love.css">
-    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260822123409">
-    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260822123409">
+    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260822214719">
+    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260822214719">
     <style>
       html, body {
         margin: 0; padding: 0;
@@ -706,11 +706,22 @@
                 if (!raw2) continue;
                 var item;
                 try { item = JSON.parse(raw2); } catch (e4) { continue; }
-                var dup = false;
+                var dupIdx = -1;
                 for (var j = 0; j < pending.length; j++) {
-                  if (pending[j].path === item.path) { dup = true; break; }
+                  if (pending[j].path === item.path) { dupIdx = j; break; }
                 }
-                if (!dup) pending.push(item);
+                if (dupIdx < 0) {
+                  pending.push(item);
+                } else {
+                  // 같은 슬롯이 IDB/LS 양쪽에 있으면 timestamp 최신본 채택.
+                  // (IDB 비동기 tx 가 페이지 이탈로 유실되면 IDB 가 과거본일 수 있다
+                  //  — 과거본을 주입하면 세이브가 롤백되어 이벤트 재발/착장 원복.)
+                  var prev = pending[dupIdx];
+                  if ((item.ts || 0) > (prev.ts || 0)) {
+                    console.log('[preRun] slot newer in localStorage — using LS copy:', item.path);
+                    pending[dupIdx] = item;
+                  }
+                }
               }
             }
           } catch (e) { console.warn('[preRun] localStorage error:', e); }
@@ -930,7 +941,7 @@
                 if (!dir) { status = 'LOVE2D_SAVE_DIR 미설정'; return; }
                 var fname = window.__savAS.name.replace(/^saves\//, '');
                 var path = dir + '/' + fname;
-                var entry = JSON.stringify({ path: path, b64: b64 });
+                var entry = JSON.stringify({ path: path, b64: b64, ts: Date.now() });
 
                 // 1순위: IndexedDB 별도 DB ('love2d_user_saves') — quota 큼, 정책 영향 적음
                 var idbReq = indexedDB.open('love2d_user_saves', 1);
@@ -1089,8 +1100,8 @@
 
       var applicationLoad = function(e) { Love(Module); };
     </script>
-    <script type="text/javascript" src="nipplejs.min.js?v=20260822123409"></script>
-    <script type="text/javascript" src="mobile_input.js?v=20260822123409"></script>
+    <script type="text/javascript" src="nipplejs.min.js?v=20260822214719"></script>
+    <script type="text/javascript" src="mobile_input.js?v=20260822214719"></script>
     <script type="text/javascript">
       // 비-Chromium 브라우저 안내. UA 검사: Chrome/CriOS 면 OK, Edg/OPR/SamsungBrowser
       // 같은 Chromium 변형도 OK 처리 (love.js 호환성 비슷). Firefox/Safari/iOS Safari 만 안내.
@@ -1110,8 +1121,8 @@
         } catch (e) {}
       })();
     </script>
-    <script type="text/javascript" src="save_controls.js?v=20260822123409"></script>
-    <script type="text/javascript" src="game.js?v=20260822123409"></script>
-    <script async type="text/javascript" src="love.js?v=20260822123409" onload="applicationLoad(this)"></script>
+    <script type="text/javascript" src="save_controls.js?v=20260822214719"></script>
+    <script type="text/javascript" src="game.js?v=20260822214719"></script>
+    <script async type="text/javascript" src="love.js?v=20260822214719" onload="applicationLoad(this)"></script>
   </body>
 </html>
