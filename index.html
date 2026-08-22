@@ -14,8 +14,8 @@
     <title>어스토니시아 스토리</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" type="text/css" href="theme/love.css">
-    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260822012406">
-    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260822012406">
+    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260822115138">
+    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260822115138">
     <style>
       html, body {
         margin: 0; padding: 0;
@@ -140,9 +140,34 @@
         0%, 100% { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(255, 213, 102, 0.5); }
         50%      { box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6), 0 0 0 14px rgba(255, 213, 102, 0); }
       }
+    
+      /* === native-touch (엔진 내장 터치 입력, asto 이식) ===
+       * 엔진이 플로팅 조이스틱/탭 이동/스와이프를 자체 처리하므로 HTML nipplejs
+       * 조이스틱은 숨기고 D-pad + esc/space/enter 키패드는 유지 (메뉴 UX 보조).
+       * 캔버스 안 터치는 브라우저 스크롤/줌에 뺏기지 않게 touch-action:none. */
+      body.native-touch #mobile-input .joystick { display: none !important; }
+      body.native-touch #mobile-input .dpad { display: grid; }
+      body.native-touch #canvas {
+        touch-action: none;
+        -webkit-user-select: none; user-select: none;
+        -webkit-touch-callout: none;
+      }
+      @media (pointer: coarse), (max-width: 1024px) {
+        body.native-touch .game-wrap { padding-top: 6px; }
+        body.native-touch #canvas {
+          max-width: 100vw;
+          max-height: calc(100vh - 220px);
+          max-height: calc(100dvh - 220px);
+        }
+        body.native-touch #mobile-input .dpad,
+        body.native-touch #mobile-input .actions { bottom: 62px; }
+        body.native-touch .top-right {
+          top: auto; bottom: 8px; left: 8px; right: 8px;
+        }
+      }
     </style>
   </head>
-  <body>
+  <body class="native-touch">
     <div class="game-wrap">
       <canvas id="loadingCanvas" oncontextmenu="event.preventDefault()" width="800" height="600" style="display:none"></canvas>
       <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
@@ -986,8 +1011,8 @@
 
       var applicationLoad = function(e) { Love(Module); };
     </script>
-    <script type="text/javascript" src="nipplejs.min.js?v=20260822012406"></script>
-    <script type="text/javascript" src="mobile_input.js?v=20260822012406"></script>
+    <script type="text/javascript" src="nipplejs.min.js?v=20260822115138"></script>
+    <script type="text/javascript" src="mobile_input.js?v=20260822115138"></script>
     <script type="text/javascript">
       // 비-Chromium 브라우저 안내. UA 검사: Chrome/CriOS 면 OK, Edg/OPR/SamsungBrowser
       // 같은 Chromium 변형도 OK 처리 (love.js 호환성 비슷). Firefox/Safari/iOS Safari 만 안내.
@@ -1007,8 +1032,8 @@
         } catch (e) {}
       })();
     </script>
-    <script type="text/javascript" src="save_controls.js?v=20260822012406"></script>
-    <script type="text/javascript" src="game.js?v=20260822012406"></script>
-    <script async type="text/javascript" src="love.js?v=20260822012406" onload="applicationLoad(this)"></script>
+    <script type="text/javascript" src="save_controls.js?v=20260822115138"></script>
+    <script type="text/javascript" src="game.js?v=20260822115138"></script>
+    <script async type="text/javascript" src="love.js?v=20260822115138" onload="applicationLoad(this)"></script>
   </body>
 </html>
