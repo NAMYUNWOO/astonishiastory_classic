@@ -14,8 +14,8 @@
     <title>어스토니시아 스토리</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" type="text/css" href="theme/love.css">
-    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260822122017">
-    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260822122017">
+    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260822123409">
+    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260822123409">
     <style>
       html, body {
         margin: 0; padding: 0;
@@ -75,11 +75,6 @@
         border-radius: 6px;
         box-shadow: 0 0 40px rgba(120, 40, 80, 0.55), 0 8px 30px rgba(0, 0, 0, 0.6);
         -webkit-user-select: none; user-select: none;
-      }
-      #splash-caption {
-        color: rgb(150, 130, 150);
-        font-size: 0.82em; letter-spacing: 0.08em;
-        margin-top: 14px;
       }
       #splash-progress {
         width: min(86vw, 520px);
@@ -199,10 +194,10 @@
         body.native-touch #mobile-input .dpad,
         body.native-touch #mobile-input .actions {
           bottom: auto;
-          top: calc(62.5vw + 26px);
+          top: calc(62.5vw + 48px);
         }
         body.native-touch .top-right {
-          top: calc(62.5vw + 190px); bottom: auto; left: 8px; right: 8px;
+          top: calc(62.5vw + 212px); bottom: auto; left: 8px; right: 8px;
         }
         /* 브라우저 권장 배너는 키패드와 겹치지 않게 맨 아래로 */
         body.native-touch #browser-recommend {
@@ -220,7 +215,6 @@
            타이틀 CG (mme_cg_11, 원본 MME.DAT 일러스트) + 리소스 다운로드 프로그레스. -->
       <div id="splash-overlay">
         <img id="splash-cg" src="splash_cg.png" alt="Astonishia Story" draggable="false">
-        <div id="splash-caption">비공식 LÖVE2D 포팅 · 1994 손노리(Sonnori)</div>
         <div id="splash-progress">
           <div id="splash-bar-track"><div id="splash-bar-fill"></div></div>
           <div id="splash-bar-label">리소스 다운로드 준비 중...</div>
@@ -1095,8 +1089,8 @@
 
       var applicationLoad = function(e) { Love(Module); };
     </script>
-    <script type="text/javascript" src="nipplejs.min.js?v=20260822122017"></script>
-    <script type="text/javascript" src="mobile_input.js?v=20260822122017"></script>
+    <script type="text/javascript" src="nipplejs.min.js?v=20260822123409"></script>
+    <script type="text/javascript" src="mobile_input.js?v=20260822123409"></script>
     <script type="text/javascript">
       // 비-Chromium 브라우저 안내. UA 검사: Chrome/CriOS 면 OK, Edg/OPR/SamsungBrowser
       // 같은 Chromium 변형도 OK 처리 (love.js 호환성 비슷). Firefox/Safari/iOS Safari 만 안내.
@@ -1116,8 +1110,8 @@
         } catch (e) {}
       })();
     </script>
-    <script type="text/javascript" src="save_controls.js?v=20260822122017"></script>
-    <script type="text/javascript" src="game.js?v=20260822122017"></script>
-    <script async type="text/javascript" src="love.js?v=20260822122017" onload="applicationLoad(this)"></script>
+    <script type="text/javascript" src="save_controls.js?v=20260822123409"></script>
+    <script type="text/javascript" src="game.js?v=20260822123409"></script>
+    <script async type="text/javascript" src="love.js?v=20260822123409" onload="applicationLoad(this)"></script>
   </body>
 </html>
