@@ -14,8 +14,8 @@
     <title>어스토니시아 스토리</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" type="text/css" href="theme/love.css">
-    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260823235600">
-    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260823235600">
+    <link rel="stylesheet" type="text/css" href="mobile_input.css?v=20260829211040">
+    <link rel="stylesheet" type="text/css" href="save_controls.css?v=20260829211040">
     <style>
       html, body {
         margin: 0; padding: 0;
@@ -25,6 +25,29 @@
         height: 100%;
       }
       #canvas { display: block; margin: 0 auto; outline: none; }
+      /* CRT 효과 (웹 레이어, 순수 CSS — Imetomi/retro-futuristic-ui-design(MIT) 의 기법 각색):
+       * 스캔라인 = repeating-linear-gradient(행 피치 --crt-row 는 JS 가 캔버스 높이/200 으로
+       * 동기), 애퍼처 그릴 = 3px RGB 세로 줄, 비네트 = radial-gradient, 유리 하이라이트 =
+       * 대각 linear-gradient, 곡면 = 타원 border-radius. 캔버스 위에 pointer-events:none 으로
+       * 얹히므로 게임(WebGL)엔 부하가 없다. body.crt-on 일 때만 표시. */
+      #crt-overlay {
+        display: none; position: fixed; pointer-events: none; z-index: 3;
+        --crt-row: 4px; --crt-scan: 0.22; --crt-vig: 0.36; --crt-mask: 0.045;
+        border-radius: 1.6% / 2.4%;
+        box-shadow: inset 0 0 24px rgba(0,0,0,0.55);
+        background:
+          linear-gradient(115deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.0) 38%),
+          radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,var(--crt-vig)) 100%),
+          repeating-linear-gradient(to right,
+            rgba(255,0,0,var(--crt-mask)) 0px, rgba(255,0,0,var(--crt-mask)) 1px,
+            rgba(0,255,0,var(--crt-mask)) 1px, rgba(0,255,0,var(--crt-mask)) 2px,
+            rgba(0,0,255,var(--crt-mask)) 2px, rgba(0,0,255,var(--crt-mask)) 3px),
+          repeating-linear-gradient(to bottom,
+            rgba(0,0,0,0) 0px, rgba(0,0,0,0) calc(var(--crt-row) - 1px),
+            rgba(0,0,0,var(--crt-scan)) calc(var(--crt-row) - 1px), rgba(0,0,0,var(--crt-scan)) var(--crt-row));
+      }
+      body.crt-on #crt-overlay { display: block; }
+      body.crt-on #canvas { border-radius: 1.6% / 2.4%; }
       h1, footer { display: none; }
       /* PC default: 화면 가운데 정렬 (vertical + horizontal).
        * mobile (touch / 작은 viewport) 은 column + 위 시작 + padding-top.
@@ -210,6 +233,7 @@
     <div class="game-wrap">
       <canvas id="loadingCanvas" oncontextmenu="event.preventDefault()" width="800" height="600" style="display:none"></canvas>
       <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+      <div id="crt-overlay" aria-hidden="true"></div>
 
       <!-- Splash: main.lua love.load() 끝까지 표시 (BGM preload 1-3초 흡수).
            타이틀 CG (mme_cg_11, 원본 MME.DAT 일러스트) + 리소스 다운로드 프로그레스. -->
@@ -272,6 +296,24 @@
               설정은 이 브라우저에 저장되어 다음 접속에도 유지됩니다.
             </p>
             <div id="speed-status"></div>
+            <h3 style="margin-top:18px">색감</h3>
+            <p class="speed-sub">— 원본 VGA 색을 현대 게임 색감으로 보정 (에셋은 그대로, 화면 출력만).</p>
+            <div class="speed-row">
+              <select id="style-select" style="flex:1;padding:8px;font-size:15px">
+                <option value="none">원본 (1994 VGA)</option>
+                <option value="subtle">은은하게</option>
+                <option value="modern">모던</option>
+                <option value="cinematic">시네마틱</option>
+              </select>
+            </div>
+            <div id="style-status"></div>
+            <h3 style="margin-top:18px">CRT 효과</h3>
+            <p class="speed-sub">— 스캔라인·비네트·곡면을 화면 위에 얹습니다 (웹 레이어, 게임 성능 영향 없음).</p>
+            <div class="speed-row">
+              <label style="display:flex;align-items:center;gap:8px;font-size:15px">
+                <input type="checkbox" id="crt-toggle"> CRT 켜기
+              </label>
+            </div>
           </div>
         </div>
 
@@ -872,6 +914,104 @@
       })();
       document.addEventListener('DOMContentLoaded', function () { window.SpeedControl.install(); });
 
+      // 색감 스타일 → 게임: 배속과 같은 KeyboardEvent 채널, 절대 인코딩 F8(원본 리셋) +
+      // k회 F9(다음 스타일). 순서는 main.lua WEB_STYLE_CYCLE 과 동일해야 한다.
+      window.StyleControl = (function () {
+        var NAMES = ['none', 'subtle', 'modern', 'cinematic'], KEY = 'asto_style';
+        var cur = 'none', ready = false;
+        function snap(v) { return NAMES.indexOf(String(v)) >= 0 ? String(v) : 'none'; }
+        function dispatchKey(keyName, keyCode) {
+          var target = document.getElementById('canvas') || document;
+          try {
+            target.dispatchEvent(new KeyboardEvent('keydown', {
+              key: keyName, code: keyName, keyCode: keyCode, which: keyCode,
+              bubbles: true, cancelable: true,
+            }));
+            target.dispatchEvent(new KeyboardEvent('keyup', {
+              key: keyName, code: keyName, keyCode: keyCode, which: keyCode,
+              bubbles: true, cancelable: true,
+            }));
+          } catch (e) {}
+        }
+        function sendToGame(v) {
+          try {
+            var steps = NAMES.indexOf(snap(v));
+            dispatchKey('F8', 119);
+            for (var i = 1; i <= steps; i++) {
+              setTimeout(dispatchKey.bind(null, 'F9', 120), i * 60);
+            }
+            return true;
+          } catch (e) { console.warn('[style] send failed:', e); }
+          return false;
+        }
+        function render() {
+          var sel = document.getElementById('style-select');
+          if (sel) sel.value = cur;
+          var st = document.getElementById('style-status');
+          if (st) st.textContent = ready ? '' : '게임 로딩 후 적용됩니다';
+        }
+        function apply(v) {
+          cur = snap(v);
+          try { localStorage.setItem(KEY, cur); } catch (e) {}
+          render();
+          if (ready) sendToGame(cur);
+          if (window.__logPush) window.__logPush('[style] ui → ' + cur, false);
+        }
+        function onBoot() {
+          ready = true;
+          render();
+          if (cur === 'none') return;
+          sendToGame(cur);
+          setTimeout(function () { sendToGame(cur); }, 1500);
+        }
+        function install() {
+          try { var saved = localStorage.getItem(KEY); if (saved != null) cur = snap(saved); } catch (e) {}
+          var sel = document.getElementById('style-select');
+          if (sel) sel.addEventListener('change', function () { apply(sel.value); });
+          render();
+        }
+        return { install: install, onBoot: onBoot, apply: apply, get: function () { return cur; } };
+      })();
+      document.addEventListener('DOMContentLoaded', function () { window.StyleControl.install(); });
+
+      // CRT 오버레이 (CSS 전용): 캔버스 사각형에 #crt-overlay 를 맞추고 스캔라인 행 피치를
+      // 캔버스 높이/200(게임 가상 행) 으로 동기. localStorage asto_crt ('1'|'0').
+      window.CrtControl = (function () {
+        var KEY = 'asto_crt', on = false, ro = null;
+        function sync() {
+          var ov = document.getElementById('crt-overlay');
+          var cv = document.getElementById('canvas');
+          if (!ov || !cv) return;
+          var r = cv.getBoundingClientRect();
+          if (r.width < 2 || r.height < 2) return;
+          ov.style.left = r.left + 'px'; ov.style.top = r.top + 'px';
+          ov.style.width = r.width + 'px'; ov.style.height = r.height + 'px';
+          var row = Math.max(2, r.height / 200);
+          ov.style.setProperty('--crt-row', row.toFixed(3) + 'px');
+        }
+        function apply(v) {
+          on = !!v;
+          try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+          document.body.classList.toggle('crt-on', on);
+          var cb = document.getElementById('crt-toggle');
+          if (cb) cb.checked = on;
+          if (on) sync();
+        }
+        function install() {
+          try { on = localStorage.getItem(KEY) === '1'; } catch (e) {}
+          var cb = document.getElementById('crt-toggle');
+          if (cb) cb.addEventListener('change', function () { apply(cb.checked); });
+          window.addEventListener('resize', sync);
+          window.addEventListener('orientationchange', function () { setTimeout(sync, 300); });
+          var cv = document.getElementById('canvas');
+          if (cv && window.ResizeObserver) { ro = new ResizeObserver(sync); ro.observe(cv); }
+          setInterval(function () { if (on) sync(); }, 1000);
+          apply(on);
+        }
+        return { install: install, apply: apply, sync: sync, get: function () { return on; } };
+      })();
+      document.addEventListener('DOMContentLoaded', function () { window.CrtControl.install(); });
+
       var Module = {
         arguments: ["./game.love"],
         INITIAL_MEMORY: 268435456,
@@ -886,6 +1026,7 @@
           if (trimmed === window.LOVE2D_BOOT_DONE_SENTINEL) {
             hideSplash();
             try { if (window.SpeedControl) window.SpeedControl.onBoot(); } catch (e) {}
+            try { if (window.StyleControl) window.StyleControl.onBoot(); } catch (e) {}
             return;
           }
           var sdMatch = trimmed.match(/^\[SAVE_DIR\]\s+(.+)$/);
@@ -1100,8 +1241,8 @@
 
       var applicationLoad = function(e) { Love(Module); };
     </script>
-    <script type="text/javascript" src="nipplejs.min.js?v=20260823235600"></script>
-    <script type="text/javascript" src="mobile_input.js?v=20260823235600"></script>
+    <script type="text/javascript" src="nipplejs.min.js?v=20260829211040"></script>
+    <script type="text/javascript" src="mobile_input.js?v=20260829211040"></script>
     <script type="text/javascript">
       // 비-Chromium 브라우저 안내. UA 검사: Chrome/CriOS 면 OK, Edg/OPR/SamsungBrowser
       // 같은 Chromium 변형도 OK 처리 (love.js 호환성 비슷). Firefox/Safari/iOS Safari 만 안내.
@@ -1121,8 +1262,8 @@
         } catch (e) {}
       })();
     </script>
-    <script type="text/javascript" src="save_controls.js?v=20260823235600"></script>
-    <script type="text/javascript" src="game.js?v=20260823235600"></script>
-    <script async type="text/javascript" src="love.js?v=20260823235600" onload="applicationLoad(this)"></script>
+    <script type="text/javascript" src="save_controls.js?v=20260829211040"></script>
+    <script type="text/javascript" src="game.js?v=20260829211040"></script>
+    <script async type="text/javascript" src="love.js?v=20260829211040" onload="applicationLoad(this)"></script>
   </body>
 </html>
